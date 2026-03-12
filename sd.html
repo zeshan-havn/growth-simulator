@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Havn Club — Growth Simulator (San Diego)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --green-darkest: #0A1612;
+    --green-brand: #1B5E40;
+    --green-soft: #2D4A3E;
+    --cream: #F5F1EA;
+    --cream-warm: #F0EBE3;
+    --cream-dark: #E5E0D6;
+    --brass: #C4A87C;
+    --brass-muted: #A89060;
+    --charcoal: #1C1C1A;
+    --gray-warm: #5C5A55;
+    --gray-mid: #8A8680;
+    --gray-light: #B5B0A8;
+    --red: #C0392B;
+    --green-bright: #27AE60;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--charcoal); line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Cormorant', serif; font-weight: 600; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+.hero {
+    background: linear-gradient(135deg, var(--green-darkest) 0%, var(--green-brand) 100%);
+    color: var(--cream);
+    padding: 60px 0 50px;
+    text-align: center;
+}
+.hero h1 { font-size: 2.8rem; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { font-size: 1.15rem; color: var(--brass); font-weight: 300; }
+.hero .date { margin-top: 12px; font-size: 0.85rem; color: var(--gray-light); }
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: -30px 0 40px;
+    position: relative;
+    z-index: 1;
+}
+.kpi-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border-top: 3px solid var(--brass);
+    transition: transform 0.15s ease;
+}
+.kpi-card:hover { transform: translateY(-2px); }
+.kpi-card .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gray-warm);
+    margin-bottom: 6px;
+}
+.kpi-card .value {
+    font-family: 'Cormorant', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--green-darkest);
+    line-height: 1.1;
+}
+.kpi-card .sub {
+    font-size: 0.75rem;
+    color: var(--gray-mid);
+    margin-top: 6px;
+}
+
+.controls-card {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 32px;
+    overflow: hidden;
+}
+.controls-header {
+    background: var(--cream-warm);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--cream-dark);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.controls-header h2 { font-size: 1.3rem; color: var(--green-darkest); }
+.controls-body { padding: 24px; }
+
+.slider-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 40px;
+}
+.slider-group { position: relative; }
+.slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+}
+.slider-label .name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--charcoal);
+}
+.slider-label .current-val {
+    font-family: 'Cormorant', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--green-brand);
+    min-width: 60px;
+    text-align: right;
+}
+.slider-range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+.slider-range span {
+    font-size: 0.7rem;
+    color: var(--gray-light);
+}
+.slider-desc {
+    font-size: 0.75rem;
+    color: var(--gray-mid);
+    margin-top: 4px;
+}
+.effective-rate {
+    margin-top: 8px;
+    padding: 12px 16px;
+    background: var(--cream-warm);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: var(--gray-warm);
+    grid-column: 1 / -1;
+}
+.effective-rate strong { color: var(--green-brand); font-weight: 700; }
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--cream-dark);
+    outline: none;
+    cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--green-brand);
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.2);
+    transition: transform 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--green-brand); cursor: pointer;
+    border: 3px solid white; box-shadow: 0 1px 6px rgba(0,0,0,0.2);
+}
+
+.btn-reset {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 500; font-family: 'DM Sans', sans-serif;
+    background: var(--cream-warm); color: var(--gray-warm);
+    border: 1px solid var(--cream-dark); cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-reset:hover { background: var(--cream-dark); color: var(--charcoal); }
+
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 32px;
+}
+.chart-card h2 {
+    font-size: 1.3rem;
+    color: var(--green-darkest);
+    margin-bottom: 20px;
+}
+.chart-wrap { position: relative; height: 600px; }
+
+.table-card {
+    background: white; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 32px; overflow: hidden;
+}
+.table-card h2 {
+    font-size: 1.3rem; color: var(--green-darkest);
+    padding: 16px 24px; border-bottom: 1px solid var(--cream-dark);
+}
+.table-scroll { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+thead th {
+    background: var(--green-darkest); color: var(--cream);
+    padding: 12px 14px; text-align: right;
+    font-weight: 600; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;
+}
+thead th:first-child { text-align: left; }
+tbody td {
+    padding: 10px 14px; text-align: right;
+    border-bottom: 1px solid var(--cream-dark); white-space: nowrap;
+}
+tbody td:first-child { text-align: left; font-weight: 600; color: var(--gray-warm); }
+tbody tr:nth-child(even) { background: var(--cream-warm); }
+tbody tr:hover { background: var(--cream-dark); }
+tbody td.total { font-weight: 700; color: var(--green-darkest); }
+tbody td.growth-positive { color: var(--green-bright); font-weight: 600; }
+tbody td.growth-low { color: var(--gray-mid); }
+tbody td.growth-plateau { color: var(--brass-muted); font-style: italic; }
+tbody tr.actual-row td:first-child { color: var(--green-brand); }
+.table-separator td {
+    background: var(--cream-dark) !important;
+    padding: 6px 14px; font-size: 0.72rem; font-weight: 600;
+    color: var(--gray-warm); text-transform: uppercase;
+    letter-spacing: 1px; text-align: left !important;
+}
+
+.footer {
+    background: var(--green-darkest); color: var(--gray-light);
+    padding: 24px 0; text-align: center; font-size: 0.8rem; margin-top: 24px;
+}
+.footer span { color: var(--brass); }
+
+@media (max-width: 768px) {
+    .hero h1 { font-size: 2rem; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); margin: -20px 0 24px; }
+    .slider-grid { grid-template-columns: 1fr; gap: 20px; }
+    .chart-wrap { height: 400px; }
+    .controls-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="container">
+        <h1>Growth Simulator</h1>
+        <div class="subtitle">Drag the levers. See the future.</div>
+        <div class="date">Havn Club San Diego &middot; Calibrated on Jan &ndash; Mar 2026 Data</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="label">Operational Plateau</div>
+            <div class="value" id="kpiPlateau">&mdash;</div>
+            <div class="sub" id="kpiPlateauSub">orders / week</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Revenue at Plateau</div>
+            <div class="value" id="kpiRevenue">&mdash;</div>
+            <div class="sub">estimated weekly</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Plateau Reached</div>
+            <div class="value" id="kpiPlateauDate">&mdash;</div>
+            <div class="sub" id="kpiPlateauWeeks"></div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Latest Actual</div>
+            <div class="value">109</div>
+            <div class="sub">orders &middot; Mar 1, 2026</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-card">
+        <div class="controls-header">
+            <h2>Growth Levers</h2>
+            <button class="btn-reset" onclick="resetDefaults()">Reset to Defaults</button>
+        </div>
+        <div class="controls-body">
+            <div class="slider-grid">
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="name">New Signups per Week</span>
+                        <span class="current-val" id="signupsVal">175</span>
+                    </div>
+                    <input type="range" id="signups" min="50" max="500" step="5" value="175">
+                    <div class="slider-range"><span>50</span><span>500</span></div>
+                    <div class="slider-desc">Meta ads &rarr; Typeform signups. More spend = more signups.</div>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="name">First-Order Rate</span>
+                        <span class="current-val" id="firstOrderVal">18.3%</span>
+                    </div>
+                    <input type="range" id="firstOrder" min="0.05" max="0.40" step="0.005" value="0.183">
+                    <div class="slider-range"><span>5%</span><span>40%</span></div>
+                    <div class="slider-desc">% of signups who ever try Havn. Currently 82% never order. <strong>Biggest bottleneck.</strong></div>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="name">Repeat Rate</span>
+                        <span class="current-val" id="repeatVal">65.5%</span>
+                    </div>
+                    <input type="range" id="repeat" min="0.10" max="0.90" step="0.01" value="0.655">
+                    <div class="slider-range"><span>10%</span><span>90%</span></div>
+                    <div class="slider-desc">% of first-timers who come back for order #2. Product &amp; experience quality.</div>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="name">Weekly Churn Rate</span>
+                        <span class="current-val" id="churnVal">3.5%</span>
+                    </div>
+                    <input type="range" id="churn" min="0.01" max="0.10" step="0.005" value="0.035">
+                    <div class="slider-range"><span>1%</span><span>10%</span></div>
+                    <div class="slider-desc">% of regulars who stop ordering each week. Loyalty &amp; skip flexibility.</div>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span class="name">Avg Order Value</span>
+                        <span class="current-val" id="aovVal">$140</span>
+                    </div>
+                    <input type="range" id="aov" min="50" max="250" step="5" value="140">
+                    <div class="slider-range"><span>$50</span><span>$250</span></div>
+                    <div class="slider-desc">Revenue per order. Pricing, upselling sides, premium options.</div>
+                </div>
+                <div class="effective-rate">
+                    Effective conversion: <strong id="effectiveConv">12.0%</strong> of all signups become repeat customers
+                    &nbsp;(First-Order <span id="effFO">18.3%</span> &times; Repeat <span id="effRP">65.5%</span> = <span id="effResult">12.0%</span>)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-card">
+        <h2>Order Growth &mdash; Actuals + Projected Through Dec 2027</h2>
+        <div class="chart-wrap">
+            <canvas id="growthChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <h2>Weekly Breakdown</h2>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Active Pool</th>
+                        <th>Total Orders</th>
+                        <th>Wk Growth</th>
+                        <th>Est Revenue</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="container">
+        Model calibrated on <span>Jan &ndash; Mar 2026 SD data</span>.
+        Rates derived from actual customer behavior.
+        Operational plateau = growth &lt; 3 orders/week.
+    </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────
+// ACTUAL HISTORICAL DATA (San Diego — from Airtable cache)
+// ─────────────────────────────────────────────────
+const ACTUALS = [
+    { date: '2025-11-16', orders: 14 },
+    { date: '2025-11-30', orders: 12 },
+    { date: '2025-12-07', orders: 14 },
+    { date: '2025-12-14', orders: 19 },
+    { date: '2026-01-04', orders: 31 },
+    { date: '2026-01-11', orders: 56 },
+    { date: '2026-01-18', orders: 70 },
+    { date: '2026-01-25', orders: 88 },
+    { date: '2026-02-01', orders: 85 },
+    { date: '2026-02-08', orders: 80 },
+    { date: '2026-02-15', orders: 93 },
+    { date: '2026-02-22', orders: 112 },
+    { date: '2026-03-01', orders: 109 },
+];
+
+// ─────────────────────────────────────────────────
+// DEFAULTS — calibrated values from growth_model.py (SD)
+// ─────────────────────────────────────────────────
+const DEFAULTS = {
+    signups_per_week: 175,
+    first_order_rate: 0.183,      // 18.3% of signups ever place first order
+    repeat_rate: 0.655,           // 65.5% of first-timers become regulars
+    // effective conversion = 0.183 × 0.655 = 0.120
+    churn_rate: 0.035,
+    active_order_rate: 0.272,     // empirical from SD data
+    inactive_order_rate: 0.007,   // reactivation rate
+    // Internal model rates (not exposed as sliders)
+    ft_order_rate: 0.084,
+    nl_order_rate: 0.017,
+    ol_order_rate: 0.001,
+
+    starting_active: 127,
+    starting_inactive: 52,
+    starting_ol: 517,
+    avg_order_value: 140,
+};
+
+const LAST_ACTUAL_DATE = new Date('2026-03-01');
+const LAST_ACTUAL_ORDERS = ACTUALS[ACTUALS.length - 1].orders;
+const END_DATE = new Date('2027-12-31');
+
+let currentParams = { ...DEFAULTS };
+
+// ─────────────────────────────────────────────────
+// PROJECTION ENGINE
+// ─────────────────────────────────────────────────
+function addWeeks(date, n) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + 7 * n);
+    return d;
+}
+
+function formatDate(d) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+function formatDateFull(d) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function formatMonthYear(d) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+// Compute raw model orders for given pool state
+function computeRawOrders(active, inactive, p) {
+    const effectiveConv = p.first_order_rate * p.repeat_rate;
+    const ftPool = p.signups_per_week * p.first_order_rate * (1 - p.repeat_rate) * 2;
+    const nlPool = p.signups_per_week * (1 - p.first_order_rate) * 3;
+    return active * p.active_order_rate
+        + ftPool * p.ft_order_rate
+        + nlPool * p.nl_order_rate
+        + p.starting_ol * p.ol_order_rate
+        + inactive * p.inactive_order_rate;
+}
+
+function runProjection(p) {
+    const results = [];
+    let active = p.starting_active;
+    let inactive = p.starting_inactive;
+    const effectiveConv = p.first_order_rate * p.repeat_rate;
+    const newActives = p.signups_per_week * effectiveConv;
+
+    // Anchor offset: model prediction for "now" vs last actual
+    const modelNow = computeRawOrders(active, inactive, p);
+    const offset = LAST_ACTUAL_ORDERS - modelNow;
+
+    let prevTotal = LAST_ACTUAL_ORDERS;
+    let week = 0;
+
+    while (true) {
+        week++;
+        const projDate = addWeeks(LAST_ACTUAL_DATE, week);
+        if (projDate > END_DATE) break;
+
+        // Grow pools
+        const churn = active * p.churn_rate;
+        active = active + newActives - churn;
+        inactive = inactive + churn * 0.7;
+
+        // Segment pools
+        const ftPool = p.signups_per_week * p.first_order_rate * (1 - p.repeat_rate) * 2;
+        const nlPool = p.signups_per_week * (1 - p.first_order_rate) * 3;
+        const olPool = p.starting_ol;
+
+        const ordActive = active * p.active_order_rate;
+        const ordFt = ftPool * p.ft_order_rate;
+        const ordNl = nlPool * p.nl_order_rate;
+        const ordOl = olPool * p.ol_order_rate;
+        const ordInactive = inactive * p.inactive_order_rate;
+        const rawTotal = ordActive + ordFt + ordNl + ordOl + ordInactive;
+
+        // Apply anchor so projection flows from last actual
+        const total = rawTotal + offset;
+        const growth = Math.round(total) - prevTotal;
+        prevTotal = Math.round(total);
+
+        results.push({
+            date: projDate,
+            label: formatDate(projDate),
+            week: week,
+            active: Math.round(active),
+            total: Math.round(total),
+            growth: growth,
+            revenue: Math.round(total * p.avg_order_value),
+        });
+    }
+    return results;
+}
+
+function findPlateau(projected) {
+    // Operational plateau: first week where growth < 3 orders/week
+    // Skip first 2 weeks to avoid initial settling noise
+    for (let i = 2; i < projected.length; i++) {
+        if (projected[i].growth < 3) {
+            return { index: i, data: projected[i] };
+        }
+    }
+    return null;
+}
+
+function computeTheoreticalPlateau(p) {
+    const effectiveConv = p.first_order_rate * p.repeat_rate;
+    const newActives = p.signups_per_week * effectiveConv;
+    const ssActive = p.churn_rate > 0 ? newActives / p.churn_rate : 9999;
+    const ssInactive = ssActive * 0.8;
+    const ftPool = p.signups_per_week * p.first_order_rate * (1 - p.repeat_rate) * 2;
+    const nlPool = p.signups_per_week * (1 - p.first_order_rate) * 3;
+    const orders = ssActive * p.active_order_rate
+        + ftPool * p.ft_order_rate
+        + nlPool * p.nl_order_rate
+        + p.starting_ol * p.ol_order_rate
+        + ssInactive * p.inactive_order_rate;
+    return {
+        orders: Math.round(orders),
+        revenue: Math.round(orders * p.avg_order_value),
+    };
+}
+
+// ─────────────────────────────────────────────────
+// CHART
+// ─────────────────────────────────────────────────
+let chart = null;
+
+function initChart() {
+    Chart.defaults.font.family = "'DM Sans', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#5C5A55';
+
+    const ctx = document.getElementById('growthChart').getContext('2d');
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Actual Orders',
+                    data: [],
+                    borderColor: '#1B5E40',
+                    backgroundColor: '#1B5E40',
+                    tension: 0.2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#1B5E40',
+                    pointBorderColor: 'white',
+                    pointBorderWidth: 2,
+                    borderWidth: 2.5,
+                    order: 1,
+                },
+                {
+                    label: 'Projected Orders',
+                    data: [],
+                    borderColor: '#2D4A3E',
+                    backgroundColor: 'rgba(45, 74, 62, 0.08)',
+                    fill: true,
+                    borderDash: [6, 3],
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#2D4A3E',
+                    pointBorderColor: 'white',
+                    pointBorderWidth: 2,
+                    borderWidth: 2,
+                    order: 2,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 13, weight: '500' },
+                    },
+                },
+                tooltip: {
+                    backgroundColor: 'white',
+                    titleColor: '#1C1C1A',
+                    bodyColor: '#5C5A55',
+                    borderColor: '#E5E0D6',
+                    borderWidth: 1,
+                    padding: 14,
+                    titleFont: { weight: '600', size: 13 },
+                    bodyFont: { size: 12 },
+                    callbacks: {
+                        label: function(ctx) {
+                            if (ctx.parsed.y === null) return null;
+                            return ctx.dataset.label + ': ' + ctx.parsed.y + ' orders/wk';
+                        },
+                    },
+                },
+                annotation: { annotations: {} },
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { maxTicksLimit: 16, font: { size: 11 }, maxRotation: 45 },
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Orders per Week',
+                        font: { weight: '500', size: 13 },
+                        color: '#5C5A55',
+                    },
+                    grid: { color: 'rgba(0,0,0,0.04)' },
+                    ticks: { font: { size: 11 } },
+                },
+            },
+        },
+    });
+}
+
+function updateChart(projected) {
+    const allLabels = [];
+    const actualData = [];
+    const projectedData = [];
+
+    // Actuals
+    ACTUALS.forEach(a => {
+        allLabels.push(formatDate(new Date(a.date)));
+        actualData.push(a.orders);
+        projectedData.push(null);
+    });
+
+    // Projected — connect to last actual
+    if (projected.length > 0) {
+        projected.forEach(p => {
+            allLabels.push(p.label);
+            actualData.push(null);
+            projectedData.push(p.total);
+        });
+        // Bridge: set last actual position in projected so lines connect
+        projectedData[ACTUALS.length - 1] = LAST_ACTUAL_ORDERS;
+    }
+
+    chart.data.labels = allLabels;
+    chart.data.datasets[0].data = actualData;
+    chart.data.datasets[1].data = projectedData;
+
+    // Annotations
+    const plateau = findPlateau(projected);
+    const annotations = {};
+
+    if (plateau) {
+        const plateauIdx = ACTUALS.length + plateau.index;
+        const plateauOrders = plateau.data.total;
+
+        annotations.plateauLine = {
+            type: 'line',
+            yMin: plateauOrders, yMax: plateauOrders,
+            borderColor: '#C4A87C', borderWidth: 2, borderDash: [6, 4],
+            label: {
+                display: true,
+                content: 'Operational Plateau: ' + plateauOrders + ' orders/wk',
+                position: 'start',
+                backgroundColor: '#C4A87C', color: 'white',
+                font: { size: 12, weight: '600', family: "'DM Sans', sans-serif" },
+                padding: { top: 4, bottom: 4, left: 10, right: 10 },
+                borderRadius: 4, yAdjust: -14,
+            },
+        };
+
+        annotations.plateauVertical = {
+            type: 'line',
+            xMin: plateauIdx, xMax: plateauIdx,
+            borderColor: 'rgba(196, 168, 124, 0.4)', borderWidth: 1, borderDash: [4, 4],
+            label: {
+                display: true,
+                content: plateau.data.label,
+                position: 'start',
+                backgroundColor: 'rgba(196, 168, 124, 0.9)', color: 'white',
+                font: { size: 11, weight: '500', family: "'DM Sans', sans-serif" },
+                padding: { top: 3, bottom: 3, left: 8, right: 8 },
+                borderRadius: 4, yAdjust: 10,
+            },
+        };
+
+        annotations.plateauPoint = {
+            type: 'point',
+            xValue: plateauIdx, yValue: plateauOrders,
+            backgroundColor: '#C4A87C', borderColor: 'white',
+            borderWidth: 3, radius: 8,
+        };
+    }
+
+    // "Today" divider
+    annotations.todayLine = {
+        type: 'line',
+        xMin: ACTUALS.length - 1, xMax: ACTUALS.length - 1,
+        borderColor: 'rgba(90, 90, 85, 0.3)', borderWidth: 1, borderDash: [4, 4],
+        label: {
+            display: true, content: 'Today', position: 'start',
+            backgroundColor: 'rgba(90, 90, 85, 0.7)', color: 'white',
+            font: { size: 10, weight: '500', family: "'DM Sans', sans-serif" },
+            padding: { top: 2, bottom: 2, left: 6, right: 6 }, borderRadius: 3,
+        },
+    };
+
+    chart.options.plugins.annotation.annotations = annotations;
+    chart.update('none');
+}
+
+// ─────────────────────────────────────────────────
+// TABLE (simplified — no segment breakdown)
+// ─────────────────────────────────────────────────
+function updateTable(projected) {
+    const tbody = document.getElementById('tableBody');
+    let html = '';
+
+    // Actual rows
+    html += '<tr class="table-separator"><td colspan="5">Actual Orders</td></tr>';
+    for (let i = 0; i < ACTUALS.length; i++) {
+        const a = ACTUALS[i];
+        const d = new Date(a.date);
+        const prev = i > 0 ? ACTUALS[i - 1].orders : null;
+        const growth = prev !== null ? a.orders - prev : null;
+        let growthClass = '', growthText = '&mdash;';
+        if (growth !== null) {
+            growthClass = growth >= 5 ? 'growth-positive' : growth >= 0 ? 'growth-low' : 'growth-plateau';
+            growthText = (growth >= 0 ? '+' : '') + growth;
+        }
+        html += '<tr class="actual-row">'
+            + '<td>' + formatDateFull(d) + '</td>'
+            + '<td>&mdash;</td>'
+            + '<td class="total">' + a.orders + '</td>'
+            + '<td class="' + growthClass + '">' + growthText + '</td>'
+            + '<td>$' + Math.round(a.orders * currentParams.avg_order_value).toLocaleString() + '</td>'
+            + '</tr>';
+    }
+
+    // Projected rows
+    html += '<tr class="table-separator"><td colspan="5">Projected (from this week forward)</td></tr>';
+    const plateau = findPlateau(projected);
+    const plateauWeek = plateau ? plateau.data.week : null;
+
+    const early = projected.filter(d => d.week <= 12);
+    const later = projected.filter(d => d.week > 12 && d.week % 4 === 0);
+    const allShown = [...early, ...later];
+
+    if (plateauWeek && !allShown.find(d => d.week === plateauWeek)) {
+        const pData = projected.find(d => d.week === plateauWeek);
+        if (pData) allShown.push(pData);
+        allShown.sort((a, b) => a.week - b.week);
+    }
+
+    let insertedMonthlySep = false;
+    allShown.forEach(d => {
+        if (!insertedMonthlySep && d.week > 12) {
+            html += '<tr class="table-separator"><td colspan="5">Monthly (every 4 weeks)</td></tr>';
+            insertedMonthlySep = true;
+        }
+        const growthClass = d.growth >= 5 ? 'growth-positive' : d.growth >= 4 ? 'growth-low' : 'growth-plateau';
+        const isPlateau = d.week === plateauWeek;
+        const rowStyle = isPlateau ? ' style="background: rgba(196,168,124,0.12);"' : '';
+
+        html += '<tr' + rowStyle + '>'
+            + '<td>' + formatDateFull(d.date) + (isPlateau ? ' &#9670;' : '') + '</td>'
+            + '<td>' + d.active.toLocaleString() + '</td>'
+            + '<td class="total">' + d.total + '</td>'
+            + '<td class="' + growthClass + '">' + (d.growth >= 0 ? '+' : '') + d.growth + '</td>'
+            + '<td>$' + d.revenue.toLocaleString() + '</td>'
+            + '</tr>';
+    });
+
+    tbody.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────
+// KPI CARDS
+// ─────────────────────────────────────────────────
+function updateKPIs(projected) {
+    const plateau = findPlateau(projected);
+    const theoretical = computeTheoreticalPlateau(currentParams);
+
+    if (plateau) {
+        document.getElementById('kpiPlateau').textContent = plateau.data.total;
+        document.getElementById('kpiPlateauSub').textContent = 'orders / week';
+        document.getElementById('kpiRevenue').textContent = '$' + plateau.data.revenue.toLocaleString();
+        document.getElementById('kpiPlateauDate').textContent = formatMonthYear(plateau.data.date);
+        document.getElementById('kpiPlateauWeeks').textContent = plateau.data.week + ' weeks from now';
+    } else {
+        document.getElementById('kpiPlateau').textContent = theoretical.orders;
+        document.getElementById('kpiPlateauSub').textContent = 'theoretical (not reached by Dec 2027)';
+        document.getElementById('kpiRevenue').textContent = '$' + theoretical.revenue.toLocaleString();
+        document.getElementById('kpiPlateauDate').textContent = 'Beyond 2027';
+        document.getElementById('kpiPlateauWeeks').textContent = '';
+    }
+}
+
+// ─────────────────────────────────────────────────
+// EFFECTIVE CONVERSION DISPLAY
+// ─────────────────────────────────────────────────
+function updateEffectiveConversion() {
+    const eff = currentParams.first_order_rate * currentParams.repeat_rate;
+    document.getElementById('effectiveConv').textContent = (eff * 100).toFixed(1) + '%';
+    document.getElementById('effFO').textContent = (currentParams.first_order_rate * 100).toFixed(1) + '%';
+    document.getElementById('effRP').textContent = (currentParams.repeat_rate * 100).toFixed(1) + '%';
+    document.getElementById('effResult').textContent = (eff * 100).toFixed(1) + '%';
+}
+
+// ─────────────────────────────────────────────────
+// RECALCULATE
+// ─────────────────────────────────────────────────
+function recalculate() {
+    updateEffectiveConversion();
+    const projected = runProjection(currentParams);
+    updateKPIs(projected);
+    updateChart(projected);
+    updateTable(projected);
+}
+
+// ─────────────────────────────────────────────────
+// SLIDER WIRING
+// ─────────────────────────────────────────────────
+const SLIDERS = [
+    { id: 'signups', key: 'signups_per_week', fmt: v => Math.round(v) },
+    { id: 'firstOrder', key: 'first_order_rate', fmt: v => (v * 100).toFixed(1) + '%' },
+    { id: 'repeat', key: 'repeat_rate', fmt: v => (v * 100).toFixed(1) + '%' },
+    { id: 'churn', key: 'churn_rate', fmt: v => (v * 100).toFixed(1) + '%' },
+
+    { id: 'aov', key: 'avg_order_value', fmt: v => '$' + Math.round(v) },
+];
+
+function initSliders() {
+    SLIDERS.forEach(s => {
+        const slider = document.getElementById(s.id);
+        const display = document.getElementById(s.id + 'Val');
+        slider.addEventListener('input', () => {
+            currentParams[s.key] = parseFloat(slider.value);
+            display.textContent = s.fmt(parseFloat(slider.value));
+            recalculate();
+        });
+    });
+}
+
+function resetDefaults() {
+    currentParams = { ...DEFAULTS };
+    SLIDERS.forEach(s => {
+        document.getElementById(s.id).value = DEFAULTS[s.key];
+        document.getElementById(s.id + 'Val').textContent = s.fmt(DEFAULTS[s.key]);
+    });
+    recalculate();
+}
+
+// ─────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────
+(function init() {
+    initChart();
+    initSliders();
+    recalculate();
+})();
+</script>
+
+</body>
+</html>
