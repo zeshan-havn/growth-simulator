@@ -297,9 +297,9 @@ tbody tr.actual-row td:first-child { color: var(--green-brand); }
                 <div class="slider-group">
                     <div class="slider-label">
                         <span class="name">New Signups per Week</span>
-                        <span class="current-val" id="signupsVal">175</span>
+                        <span class="current-val" id="signupsVal">200</span>
                     </div>
-                    <input type="range" id="signups" min="50" max="500" step="5" value="175">
+                    <input type="range" id="signups" min="50" max="500" step="5" value="200">
                     <div class="slider-range"><span>50</span><span>500</span></div>
                     <div class="slider-desc">Meta ads &rarr; Typeform signups. More spend = more signups.</div>
                 </div>
@@ -407,7 +407,7 @@ const ACTUALS = [
 // DEFAULTS — calibrated values from growth_model.py (SD)
 // ─────────────────────────────────────────────────
 const DEFAULTS = {
-    signups_per_week: 175,
+    signups_per_week: 200,
     first_order_rate: 0.183,      // 18.3% of signups ever place first order
     repeat_rate: 0.655,           // 65.5% of first-timers become regulars
     // effective conversion = 0.183 × 0.655 = 0.120
